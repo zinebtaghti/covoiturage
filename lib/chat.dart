@@ -6,12 +6,20 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Communiquer avec le conducteur',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         hintColor: Color(0xFF039e8e),
-        scaffoldBackgroundColor: Colors.transparent, // Rend le fond transparent pour laisser voir l'image
+        scaffoldBackgroundColor: Colors.black, // Définit le fond en noir pour toute l'interface
+        appBarTheme: AppBarTheme(
+          centerTitle: true, toolbarTextStyle: TextTheme(
+            headline6: TextStyle(color: Colors.white, fontSize: 20.0), // Ajuste la taille de la police du titre de l'appbar
+          ).bodyText2, titleTextStyle: TextTheme(
+            headline6: TextStyle(color: Colors.white, fontSize: 20.0), // Ajuste la taille de la police du titre de l'appbar
+          ).headline6,
+        ),
         textTheme: TextTheme(
-          bodyText2: TextStyle(fontSize: 18.0),
+          bodyText2: TextStyle(color: Colors.white), // Style de texte par défaut
         ),
       ),
       home: ChatScreen(),
@@ -46,7 +54,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageStatus(Message message) {
     return Container(
-      height: 16,
+      height: 16, // Restrict the container height
       child: Stack(
         children: [
           Icon(
@@ -55,7 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
             color: message.seen ? Colors.blue : Colors.white,
           ),
           Positioned(
-            left: 6,
+            left: 6, // Move the second check to the right
             child: Icon(
               Icons.check,
               size: 16,
@@ -69,7 +77,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageBubble(Message message) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0),
+      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0), // Reduced vertical spacing
       child: Align(
         alignment: Alignment.centerRight,
         child: Row(
@@ -101,65 +109,53 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
+        title: Text('Communiquer avec le conducteur'), // Titre de l'appbar
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/image6.png"), // Assurez-vous que le chemin vers l'image est correct
-            fit: BoxFit.cover, // Couvre tout l'espace disponible
+
+      body: Column(
+        children: [
+          SizedBox(height: 20), // Add space at the top
+          Expanded(
+            child:ListView.builder(
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                return _buildMessageBubble(_messages[index]);
+              },
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            SizedBox(height: 20),
-            Text(
-              'Communiquer avec le conducteur',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  return _buildMessageBubble(_messages[index]);
-                },
-              ),
-            ),
-            Divider(height: 1.0),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.0),
-              color: Colors.black.withOpacity(0.5), // Légère transparence pour voir le fond
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.emoji_emotions_outlined),
-                    color: Color(0xFF039e8e),
-                    onPressed: () {},
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      onSubmitted: _sendMessage,
-                      decoration: InputDecoration(
-                        hintText: 'Écrire un message...',
-                        hintStyle: TextStyle(color: Colors.white54),
-                        border: InputBorder.none,
-                      ),
+          Divider(height: 1.0),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            color: Colors.black,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.emoji_emotions_outlined),
+                  color: Color(0xFF039e8e),
+                  onPressed: () {
+                    // TODO: Implement emoji keyboard functionality
+                  },
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: _textController,
+                    onSubmitted: _sendMessage,
+                    decoration: InputDecoration(
+                      hintText: 'Écrire un message...',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      border: InputBorder.none,
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.send),
-                    color: Color(0xFF039e8e),
-                    onPressed: () => _sendMessage(_textController.text),
-                  ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.send),
+                  color: Color(0xFF039e8e),
+                  onPressed: () => _sendMessage(_textController.text),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
