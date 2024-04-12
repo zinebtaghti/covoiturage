@@ -6,12 +6,20 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Communiquer avec le passager',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         hintColor: Color(0xFF039e8e),
-        scaffoldBackgroundColor: Colors.black, // Defines the background as black for the entire interface
-        textTheme: TextTheme( // Adjust the size of the writing
-          bodyText2: TextStyle(fontSize: 18.0),
+        scaffoldBackgroundColor: Colors.black, // Définit le fond en noir pour toute l'interface
+        appBarTheme: AppBarTheme(
+          centerTitle: true, toolbarTextStyle: TextTheme(
+          headline6: TextStyle(color: Colors.white, fontSize: 20.0), // Ajuste la taille de la police du titre de l'appbar
+        ).bodyText2, titleTextStyle: TextTheme(
+          headline6: TextStyle(color: Colors.white, fontSize: 20.0), // Ajuste la taille de la police du titre de l'appbar
+        ).headline6,
+        ),
+        textTheme: TextTheme(
+          bodyText2: TextStyle(color: Colors.white), // Style de texte par défaut
         ),
       ),
       home: ChatScreen(),
@@ -71,7 +79,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0), // Reduced vertical spacing
       child: Align(
-        alignment: Alignment.centerLeft,
+        alignment: Alignment.centerRight,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -101,20 +109,14 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
+        title: Text('Communiquer avec le passager'), // Titre de l'appbar
       ),
+
       body: Column(
         children: [
           SizedBox(height: 20), // Add space at the top
-          Text(
-            'Communiquer avec le passager',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24, // Adjust the size of the writing
-              fontWeight: FontWeight.bold,
-            ),
-          ),
           Expanded(
-            child: ListView.builder(
+            child:ListView.builder(
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 return _buildMessageBubble(_messages[index]);
