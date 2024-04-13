@@ -12,11 +12,13 @@ class MyApp extends StatelessWidget {
         hintColor: Color(0xFF039e8e),
         scaffoldBackgroundColor: Colors.black, // Définit le fond en noir pour toute l'interface
         appBarTheme: AppBarTheme(
-          centerTitle: true, toolbarTextStyle: TextTheme(
-          headline6: TextStyle(color: Colors.white, fontSize: 20.0), // Ajuste la taille de la police du titre de l'appbar
-        ).bodyText2, titleTextStyle: TextTheme(
-          headline6: TextStyle(color: Colors.white, fontSize: 20.0), // Ajuste la taille de la police du titre de l'appbar
-        ).headline6,
+          centerTitle: true,
+          toolbarTextStyle: TextTheme(
+            headline6: TextStyle(color: Colors.white, fontSize: 20.0),
+          ).bodyText2,
+          titleTextStyle: TextTheme(
+            headline6: TextStyle(color: Colors.white, fontSize: 20.0),
+          ).headline6,
         ),
         textTheme: TextTheme(
           bodyText2: TextStyle(color: Colors.white), // Style de texte par défaut
@@ -46,7 +48,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _sendMessage(String text) {
     if (text.trim().isNotEmpty) {
       setState(() {
-        _messages.insert(0, Message(text: text, seen: true));
+        _messages.add(Message(text: text, seen: true)); // Add to the end of the list
       });
       _textController.clear();
     }
@@ -77,7 +79,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageBubble(Message message) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0), // Reduced vertical spacing
+      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0),
       child: Align(
         alignment: Alignment.centerRight,
         child: Row(
@@ -111,12 +113,11 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: Colors.black,
         title: Text('Communiquer avec le passager'), // Titre de l'appbar
       ),
-
       body: Column(
         children: [
           SizedBox(height: 20), // Add space at the top
           Expanded(
-            child:ListView.builder(
+            child: ListView.builder(
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 return _buildMessageBubble(_messages[index]);
