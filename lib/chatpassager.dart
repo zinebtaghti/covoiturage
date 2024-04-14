@@ -9,8 +9,8 @@ class MyApp extends StatelessWidget {
       title: 'Communiquer avec le passager',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
-        hintColor: Color(0xFF039e8e),
-        scaffoldBackgroundColor: Colors.black, // Définit le fond en noir pour toute l'interface
+        primaryColor: Color(0xFF039e8e),
+        scaffoldBackgroundColor: Colors.black,
         appBarTheme: AppBarTheme(
           centerTitle: true,
           toolbarTextStyle: TextTheme(
@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
           ).headline6,
         ),
         textTheme: TextTheme(
-          bodyText2: TextStyle(color: Colors.white), // Style de texte par défaut
+          bodyText2: TextStyle(color: Colors.white),
         ),
       ),
       home: ChatScreen(),
@@ -31,9 +31,10 @@ class MyApp extends StatelessWidget {
 
 class Message {
   String text;
+  DateTime time;
   bool seen;
 
-  Message({required this.text, this.seen = false});
+  Message({required this.text, required this.time, this.seen = false});
 }
 
 class ChatScreen extends StatefulWidget {
@@ -48,59 +49,60 @@ class _ChatScreenState extends State<ChatScreen> {
   void _sendMessage(String text) {
     if (text.trim().isNotEmpty) {
       setState(() {
-        _messages.add(Message(text: text, seen: true)); // Add to the end of the list
+        _messages.add(Message(text: text, time: DateTime.now(), seen: true)); // Add to the end of the list
       });
       _textController.clear();
     }
   }
 
   Widget _buildMessageStatus(Message message) {
-    return Container(
-      height: 16, // Restrict the container height
-      child: Stack(
-        children: [
-          Icon(
-            Icons.check,
-            size: 16,
-            color: message.seen ? Colors.blue : Colors.white,
-          ),
-          Positioned(
-            left: 6, // Move the second check to the right
-            child: Icon(
-              Icons.check,
-              size: 16,
-              color: message.seen ? Colors.blue : Colors.white,
-            ),
-          ),
-        ],
-      ),
+    return Icon(
+      message.seen ? Icons.done_all : Icons.check,
+      size: 16,
+      color: message.seen ? Colors.blue : Colors.white,
     );
   }
 
   Widget _buildMessageBubble(Message message) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0),
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              decoration: BoxDecoration(
-                color: Color(0xFF039e8e),
-                borderRadius: BorderRadius.circular(20.0),
+    return Align(
+      alignment: Alignment.centerRight, // Change to Alignment.centerLeft for incoming messages
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.8,
+        ),
+        child: Container(
+          margin: EdgeInsets.symmetric(vertical: 4.0),
+          padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+          decoration: BoxDecoration(
+            color: Color(0xFF039e8e),
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.end,
+                children: [
+                  Text(
+                    message.text,
+                    style: TextStyle(
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(width: 8.0),
+                  Text(
+                    '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.0,
+                    ),
+                  ),
+                  _buildMessageStatus(message),
+                ],
               ),
-              child: Text(
-                message.text,
-                style: TextStyle(
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            SizedBox(width: 5),
-            _buildMessageStatus(message),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -111,52 +113,60 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: Text('Communiquer avec le passager'), // Titre de l'appbar
+        title: Text('Communiquer avec le passager'), // AppBar title
       ),
-      body: Column(
-        children: [
-          SizedBox(height: 20), // Add space at the top
-          Expanded(
-            child: ListView.builder(
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                return _buildMessageBubble(_messages[index]);
-              },
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/image9.png'), // Use the correct asset for your background
+            fit: BoxFit.cover,
           ),
-          Divider(height: 1.0),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 8.0),
-            color: Colors.black,
-            child: Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.emoji_emotions_outlined),
-                  color: Color(0xFF039e8e),
-                  onPressed: () {
-                    // TODO: Implement emoji keyboard functionality
-                  },
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    onSubmitted: _sendMessage,
-                    decoration: InputDecoration(
-                      hintText: 'Écrire un message...',
-                      hintStyle: TextStyle(color: Colors.white54),
-                      border: InputBorder.none,
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  return _buildMessageBubble(_messages[index]);
+                },
+              ),
+            ),
+            Divider(height: 1.0),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              color: Colors.black,
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.emoji_emotions_outlined),
+                    color: Color(0xFF039e8e),
+                    onPressed: () {
+                      // TODO: Implement emoji keyboard functionality
+                    },
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      onSubmitted: _sendMessage,
+                      style: TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Écrire un message...',
+                        hintStyle: TextStyle(color: Colors.white54),
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.send),
-                  color: Color(0xFF039e8e),
-                  onPressed: () => _sendMessage(_textController.text),
-                ),
-              ],
+                  IconButton(
+                    icon: Icon(Icons.send),
+                    color: Color(0xFF039e8e),
+                    onPressed: () => _sendMessage(_textController.text),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

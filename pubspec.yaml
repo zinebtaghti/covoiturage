@@ -39,7 +39,7 @@ dependencies:
   firebase_messaging: ^14.8.1
   firebase_database: ^10.5.1
   flutter_svg: ^2.0.10
-  #emoji_picker_flutter: ^2.1.1
+  #emoji_picker_flutter: ^2.2.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -78,6 +78,7 @@ flutter:
      - assets/image6.png
      - assets/image7.png
      - assets/image8.png
+     - assets/image9.png
      - assets/1.jpeg
      - assets/2.jpeg
      - assets/3.jpeg
