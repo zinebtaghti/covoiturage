@@ -1,12 +1,13 @@
+import 'mdpouli%C3%A9asmae.dart';
+import 'signup.dart';
+import 'choix.dart';
 import 'package:flutter/material.dart';
+import 'admin.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp();
-  runApp(MyApp());
-}
+class LoginIn extends StatelessWidget {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -29,7 +30,7 @@ class MyApp extends StatelessWidget {
               ),
               SizedBox(height: 8.0),
               Text(
-                'connecter vous avec votre compte',
+                'Connectez-vous avec votre compte',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 16,
@@ -38,8 +39,9 @@ class MyApp extends StatelessWidget {
               ),
               SizedBox(height: 48.0),
               TextFormField(
+                controller: _usernameController,
                 decoration: InputDecoration(
-                  hintText: 'nom d\'utilisateur',
+                  hintText: 'Nom d\'utilisateur',
                   prefixIcon: Icon(Icons.person, color: Colors.teal),
                   hintStyle: TextStyle(color: Colors.white70),
                   filled: true,
@@ -53,9 +55,10 @@ class MyApp extends StatelessWidget {
               ),
               SizedBox(height: 16.0),
               TextFormField(
+                controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  hintText: 'mot de passe',
+                  hintText: 'Mot de passe',
                   prefixIcon: Icon(Icons.lock, color: Colors.teal),
                   hintStyle: TextStyle(color: Colors.white70),
                   filled: true,
@@ -70,7 +73,25 @@ class MyApp extends StatelessWidget {
               SizedBox(height: 24.0),
               ElevatedButton(
                 onPressed: () {
-                  // Logic for login action
+                  String username = _usernameController.text;
+                  String password = _passwordController.text;
+                  if (username == 'admin' && password == 'admin') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AdminScreen()),
+                    );
+                  } else if (username.isEmpty || password.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Veuillez entrer les informations pour vous connecter'),
+                      ),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Acceuil()),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
@@ -79,26 +100,31 @@ class MyApp extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  'se connecter',
-                  style: TextStyle(color: Colors.black), // Texte en noir
+                  'Se connecter',
+                  style: TextStyle(color: Colors.black),
                 ),
               ),
-
               TextButton(
                 onPressed: () {
-                  // Logic for forgotten password
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MdpOublie()),
+                  );
                 },
                 child: Text(
-                  'mot de passe oublié?',
+                  'Mot de passe oublié?',
                   style: TextStyle(color: Colors.white70),
                 ),
               ),
               TextButton(
                 onPressed: () {
-                  // Logic for sign up
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SignUp()),
+                  );
                 },
                 child: Text(
-                  'pas encore inscrit?',
+                  'Pas encore inscrit?',
                   style: TextStyle(color: Colors.white70),
                 ),
               ),

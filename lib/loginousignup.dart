@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
+import 'signup.dart';
+import 'login.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp();
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
+class SignUpOrLogin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Interface Example',
+      title: 'loginorsignup',
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.teal,
@@ -52,7 +48,9 @@ class SelectionScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 50),
             child: ElevatedButton(
               onPressed: () {
-                // TODO: Add log in functionality
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginIn(),));
               },
               child: Text('se connecter'),
               style: ElevatedButton.styleFrom(
@@ -71,7 +69,9 @@ class SelectionScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 50),
             child: ElevatedButton(
               onPressed: () {
-                // TODO: Add sign up functionality
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SignUp(),));
               },
               child: Text('s\'inscrire'),
               style: ElevatedButton.styleFrom(

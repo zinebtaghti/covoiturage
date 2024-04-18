@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp();
-  runApp(MyApp());
-}
 
-class MyApp extends StatelessWidget {
+
+class DriverRatingScreen extends StatefulWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -20,9 +16,8 @@ class MyApp extends StatelessWidget {
       home: DriverRatingScreen(),
     );
   }
-}
 
-class DriverRatingScreen extends StatefulWidget {
+
   @override
   _DriverRatingScreenState createState() => _DriverRatingScreenState();
 }

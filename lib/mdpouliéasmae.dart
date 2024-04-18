@@ -1,12 +1,28 @@
+import 'login.dart';
 import 'package:flutter/material.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp();
-  runApp(MyApp());
-}
+class MdpOublie extends StatelessWidget {
 
-class MyApp extends StatelessWidget {
+  void _showResetSuccessMessage(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Réinitialisation réussie"),
+          content: Text("Mot de passe réinitialisé avec succès. Passez à la connexion maintenant."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -83,17 +99,20 @@ class MyApp extends StatelessWidget {
                   minimumSize: Size(double.infinity, 50), // Largeur infinie, hauteur de 50
                 ),
                 onPressed: () {
-                  // Logique de réinitialisation du mot de passe
+                  _showResetSuccessMessage(context);
                 },
                 child: Text(
                   'Réinitialiser le mot de passe',
                   style: TextStyle(fontSize: 20.0, color: Colors.black),
                 ),
               ),
-              SizedBox(height: 10.0),
+              SizedBox(height: 1.0),
               TextButton(
                 onPressed: () {
-                  // Naviguer vers l'écran de connexion
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginIn(),),
+                  );
                 },
                 child: Text(
                   'Allez à la connexion?',

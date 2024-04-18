@@ -1,12 +1,5 @@
 import 'package:flutter/material.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp();
-  runApp(MyApp());
-}
-
-// Classe représentant un trajet (pour les passagers)
+import 'trajetpassager.dart';
 class PassengerTrip {
   final String departureLocation;
   final String destination;
@@ -33,50 +26,31 @@ List<DriverTrip> driverTrips = [
   DriverTrip(departureLocation: 'Paris', destination: 'Marseille', price: 80.0, departureTime: DateTime(2024, 4, 1, 8, 0)),
 ];
 
-class MyApp extends StatelessWidget {
+class Rechercher extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Recherche Trajet',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.teal,
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.grey.shade800,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-      home: Publier(),
-    );
-  }
+  _RechercherState createState() => _RechercherState();
 }
 
-class Publier extends StatefulWidget {
-  @override
-  _PublierState createState() => _PublierState();
-}
-
-class _PublierState extends State<Publier> {
+class _RechercherState extends State<Rechercher> {
   final TextEditingController locationController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
 
   List<DriverTrip> matchingTrips = [];
+  bool noMatchingTrips = false; // Variable pour suivre si aucun trajet correspondant n'est trouvé
 
   // Fonction de comparaison des trajets
   void matchTrips() {
     setState(() {
       matchingTrips.clear();
+      noMatchingTrips = true; // Initialisation à true, changé à false s'il y a des trajets correspondants
       for (var trip in driverTrips) {
         // Comparez les informations du trajet du conducteur avec celles saisies par le passager
         if (trip.departureLocation == locationController.text &&
             trip.destination == destinationController.text &&
             trip.price <= double.parse(priceController.text)) {
           matchingTrips.add(trip);
+          noMatchingTrips = false; // Il y a au moins un trajet correspondant
         }
       }
     });
@@ -152,16 +126,52 @@ class _PublierState extends State<Publier> {
                   SizedBox(height: 20),
                   // Affichage des résultats du matching
                   if (matchingTrips.isNotEmpty)
-                    Column(
-                      children: matchingTrips.map((trip) {
-                        return ListTile(
-                          title: Text('Départ: ${trip.departureLocation} - Destination: ${trip.destination} - Prix: ${trip.price}'),
-                          subtitle: Text('Heure de départ: ${trip.departureTime}'),
+                    ElevatedButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Trajets disponibles'),
+                              content: Container(
+                                width: double.maxFinite,
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  itemCount: matchingTrips.length,
+                                  itemBuilder: (context, index) {
+                                    var trip = matchingTrips[index];
+                                    return ListTile(
+                                      title: Text('Départ: ${trip.departureLocation} - Destination: ${trip.destination} - Prix: ${trip.price}'),
+                                      subtitle: Text('Heure de départ: ${trip.departureTime}'),
+                                    );
+                                  },
+                                ),
+                              ),
+                              actions: [
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => TrajetPassager()), // Naviguer vers l'écran TrajetPassager
+                                    );
+                                  },
+                                  child: Text('Choisir'),
+                                ),
+                              ],
+                            );
+                          },
                         );
-                      }).toList(),
+                      },
+                      child: Text('Afficher les trajets disponibles'),
                     ),
-                  if (matchingTrips.isEmpty)
-                    Text('Aucun trajet correspondant trouvé.'),
+                  if (noMatchingTrips)
+                    Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text(
+                        'Aucun trajet correspondant trouvé.',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
                 ],
               ),
             ),

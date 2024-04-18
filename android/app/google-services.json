@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1010738699867",
-    "project_id": "covoiturage-d09cc",
-    "storage_bucket": "covoiturage-d09cc.appspot.com"
+    "project_number": "628850008645",
+    "project_id": "covoiturage-82f8b",
+    "storage_bucket": "covoiturage-82f8b.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1010738699867:android:4da0406adf17511a9d697e",
+        "mobilesdk_app_id": "1:628850008645:android:0cc434b4ba1b6cf896792c",
         "android_client_info": {
           "package_name": "com.example.covoiturage"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCcgmiJLWDbU494uuvXtOAZwpRJNP5e-iQ"
+          "current_key": "AIzaSyC6rdntPjRF9OYFZ_AGIiAtyThkRNdKmyI"
         }
       ],
       "services": {
