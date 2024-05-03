@@ -21,7 +21,7 @@ class DriverTrip {
 
 // Liste des trajets de conducteurs (simulons une liste statique ici)
 List<DriverTrip> driverTrips = [
-  DriverTrip(departureLocation: 'Paris', destination: 'Lyon', price: 50.0, departureTime: DateTime(2024, 4, 1, 9, 0)),
+  DriverTrip(departureLocation: 'paris', destination: 'lyon', price: 50, departureTime: DateTime(2024, 4, 1, 9, 0)),
   DriverTrip(departureLocation: 'Lyon', destination: 'Marseille', price: 70.0, departureTime: DateTime(2024, 4, 1, 10, 0)),
   DriverTrip(departureLocation: 'Paris', destination: 'Marseille', price: 80.0, departureTime: DateTime(2024, 4, 1, 8, 0)),
 ];

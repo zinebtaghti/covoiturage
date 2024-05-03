@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -35,6 +41,24 @@ class Message {
   bool seen;
 
   Message({required this.text, required this.time, this.seen = false});
+
+  // Convertir un objet Message en Map
+  Map<String, dynamic> toJson() {
+    return {
+      'text': text,
+      'time': time.toString(), // Convertir la date en string
+      'seen': seen
+    };
+  }
+
+  // Créer un objet Message à partir d'un Map
+  factory Message.fromJson(Map<dynamic, dynamic> json) {
+    return Message(
+      text: json['text'],
+      time: DateTime.parse(json['time']), // Convertir la date string en DateTime
+      seen: json['seen'],
+    );
+  }
 }
 
 class ChatScreen extends StatefulWidget {
@@ -45,27 +69,33 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final List<Message> _messages = [];
+  final DatabaseReference _messagesRef =
+  FirebaseDatabase.instance.reference();
+
+  @override
+  void initState() {
+    super.initState();
+    var userId = 'userID'; // Remplacez 'userID' par l'ID de l'utilisateur actuel
+    _messagesRef.child('users').child(userId).child('messages').onChildAdded.listen((event) {
+      var message = Message.fromJson(event.snapshot.value as Map<dynamic, dynamic>);
+      setState(() {
+        _messages.add(message);
+      });
+    });
+  }
 
   void _sendMessage(String text) {
     if (text.trim().isNotEmpty) {
-      setState(() {
-        _messages.add(Message(text: text, time: DateTime.now(), seen: true)); // Add to the end of the list
-      });
+      var userId = 'userID'; // Remplacez 'userID' par l'ID de l'utilisateur actuel
+      var message = Message(text: text, time: DateTime.now(), seen: true);
+      _messagesRef.child('users').child(userId).child('messages').push().set(message.toJson());
       _textController.clear();
     }
   }
 
-  Widget _buildMessageStatus(Message message) {
-    return Icon(
-      message.seen ? Icons.done_all : Icons.check,
-      size: 16,
-      color: message.seen ? Colors.blue : Colors.white,
-    );
-  }
-
   Widget _buildMessageBubble(Message message) {
     return Align(
-      alignment: Alignment.centerRight, // Change to Alignment.centerLeft for incoming messages
+      alignment: Alignment.centerRight,
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.8,
@@ -98,7 +128,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       fontSize: 12.0,
                     ),
                   ),
-                  _buildMessageStatus(message),
                 ],
               ),
             ],

@@ -3,10 +3,17 @@ import 'signup.dart';
 import 'choix.dart';
 import 'package:flutter/material.dart';
 import 'admin.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class LoginIn extends StatelessWidget {
+class LoginIn extends StatefulWidget {
+  @override
+  _LoginInState createState() => _LoginInState();
+}
+
+class _LoginInState extends State<LoginIn> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  String _errorMessage = '';
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +48,7 @@ class LoginIn extends StatelessWidget {
               TextFormField(
                 controller: _usernameController,
                 decoration: InputDecoration(
-                  hintText: 'Nom d\'utilisateur',
+                  hintText: 'email',
                   prefixIcon: Icon(Icons.person, color: Colors.teal),
                   hintStyle: TextStyle(color: Colors.white70),
                   filled: true,
@@ -72,27 +79,42 @@ class LoginIn extends StatelessWidget {
               ),
               SizedBox(height: 24.0),
               ElevatedButton(
-                onPressed: () {
-                  String username = _usernameController.text;
+                onPressed: () async {
+                  String email = _usernameController.text;
                   String password = _passwordController.text;
-                  if (username == 'admin' && password == 'admin') {
+                  if (email == 'admin@gmail.com' && password == 'adminadmin') {
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => AdminScreen()),
-                    );
-                  } else if (username.isEmpty || password.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Veuillez entrer les informations pour vous connecter'),
-                      ),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => Acceuil()),
-                    );
+                        context,
+                        MaterialPageRoute(builder:
+    (context) => AdminScreen()), );
                   }
-                },
+                  else{
+    try {
+    // Authentifier l'utilisateur avec Firebase Authentication
+    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+    email: email,
+    password: password,
+    );
+
+    // Si l'authentification réussit, rediriger vers l'écran d'accueil
+    Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => Acceuil()),
+    );
+    } catch (e) {
+    // Si l'authentification échoue, afficher un message d'erreur
+    print('Erreur d\'authentification: $e');
+    setState(() {
+    _errorMessage = 'Email ou mot de passe incorrect.';
+    });
+    }
+    }
+    },
+
+
+
+
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
                   shape: RoundedRectangleBorder(
@@ -104,6 +126,13 @@ class LoginIn extends StatelessWidget {
                   style: TextStyle(color: Colors.black),
                 ),
               ),
+              SizedBox(height: 8.0),
+              Text(
+                _errorMessage,
+                style: TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16.0),
               TextButton(
                 onPressed: () {
                   Navigator.push(

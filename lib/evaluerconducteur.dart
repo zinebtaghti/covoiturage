@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-
-
+import 'package:firebase_database/firebase_database.dart';
 
 class DriverRatingScreen extends StatefulWidget {
   @override
@@ -17,13 +16,12 @@ class DriverRatingScreen extends StatefulWidget {
     );
   }
 
-
   @override
   _DriverRatingScreenState createState() => _DriverRatingScreenState();
 }
 
 class _DriverRatingScreenState extends State<DriverRatingScreen> {
-  double _rating = 0.0;
+  double _rating = 2.0;
   final TextEditingController _commentController = TextEditingController();
 
   @override
@@ -39,7 +37,7 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
             children: <Widget>[
               SizedBox(height: 20.0),
               Text(
-                'Évaluer le conducteur (*facultatif)',
+                'Évaluer le conducteur ',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 25.0),
               ),
@@ -67,7 +65,7 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
               ),
               SizedBox(height: 80.0),
               Text(
-                'Donner un commentaire sur le trajet(*facultatif)',
+                'Donner un commentaire sur le trajet',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 25.0),
               ),
@@ -83,25 +81,24 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
                   ),
                   filled: true,
                   fillColor: Colors.white12,
-                  contentPadding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0), // Ajustez la valeur de vertical padding
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
                 ),
                 style: TextStyle(color: Colors.white),
-                maxLines: 5, // Ajustez le nombre maximal de lignes
+                maxLines: 5,
               ),
 
               SizedBox(height: 50.0),
               TextButton(
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.white, padding: EdgeInsets.all(16.0), // Text Color
-                  backgroundColor: Color(0xFF039e8e), // Button Background Color
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.all(16.0),
+                  backgroundColor: Color(0xFF039e8e),
                   minimumSize: Size(double.infinity, 0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30.0),
                   ),
                 ),
-                onPressed: () {
-                  // Logic to skip the step
-                },
+                onPressed: _submitRating, // Appel de la fonction _submitRating
                 child: Text(
                   'Confirmer',
                   style: TextStyle(fontSize: 16.0),
@@ -110,8 +107,9 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
               SizedBox(height: 10.0),
               TextButton(
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.white, padding: EdgeInsets.all(16.0), // Text Color
-                  backgroundColor: Color(0xFF039e8e), // Button Background Color
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.all(16.0),
+                  backgroundColor: Color(0xFF039e8e),
                   minimumSize: Size(double.infinity, 0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30.0),
@@ -120,7 +118,6 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
                 onPressed: () {
                   // Logic to skip the step
                 },
-
                 child: Text(
                   'Passer cette étape',
                   style: TextStyle(fontSize: 16.0),
@@ -131,5 +128,58 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
         ),
       ),
     );
+  }
+
+  // Fonction pour soumettre l'évaluation
+  void _submitRating() {
+    double rating = _rating;
+    String comment = _commentController.text;
+
+    // Référence à la base de données Firebase Realtime Database
+    DatabaseReference databaseReference = FirebaseDatabase.instance.reference();
+
+    // Enregistrer les données dans Firebase Realtime Database
+    databaseReference.child('ratings').push().set({
+      'rating': rating,
+      'comment': comment,
+    }).then((_) {
+      // Afficher une boîte de dialogue pour confirmer que l'évaluation a été enregistrée
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Succès'),
+            content: Text('Votre évaluation a été enregistrée avec succès !'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    }).catchError((error) {
+      // En cas d'erreur lors de l'enregistrement des données
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Erreur'),
+            content: Text('Une erreur s\'est produite lors de l\'enregistrement de l\'évaluation. Veuillez réessayer.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    });
   }
 }

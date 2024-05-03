@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:intl_phone_number_input/intl_phone_number_input.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'choix.dart';
 
 class SignUp extends StatelessWidget {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final CollectionReference _usersCollection =
+  FirebaseFirestore.instance.collection('users');
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: FirstInfoScreen(),
       theme: ThemeData.dark().copyWith(
         primaryColor: Color(0xFF039e8e),
-        colorScheme: ColorScheme.fromSwatch().copyWith(secondary: Color(0xFF039e8e)),
+        colorScheme: ColorScheme.fromSwatch().copyWith(
+          secondary: Color(0xFF039e8e),
+        ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: Color(0xFF039e8e),
@@ -36,7 +45,20 @@ class SignUp extends StatelessWidget {
 
 class FirstInfoScreen extends StatelessWidget {
   final TextEditingController nameController = TextEditingController();
-  final String imagePath = 'assets/image1.jpeg';
+  final CollectionReference _usersCollection =
+  FirebaseFirestore.instance.collection('users');
+
+  Future<void> saveUserInfoToFirestore(String name, CollectionReference usersCollection) async {
+    try {
+      await usersCollection.doc(FirebaseAuth.instance.currentUser!.uid).set({
+        'name': name,
+        'email': '', // Vous pouvez laisser vide car l'e-mail sera ajouté dans la deuxième étape
+      });
+      print('Nom sauvegardé avec succès dans Cloud Firestore');
+    } catch (e) {
+      print('Erreur lors de la sauvegarde du nom dans Cloud Firestore: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,18 +70,11 @@ class FirstInfoScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Row(
-              children: [
-
-              ],
-            ),
             Text(
               'Veuillez vous présenter',
               style: TextStyle(fontSize: 24.0),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 30.0),
-            Image.asset(imagePath),
             SizedBox(height: 30.0),
             TextField(
               controller: nameController,
@@ -84,10 +99,14 @@ class FirstInfoScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(30.0),
                 ),
               ),
-              onPressed: () {
+              onPressed: () async {
+                String name = nameController.text;
+                await saveUserInfoToFirestore(name, _usersCollection);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SecondInfoScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => SecondInfoScreen(email: ''),
+                  ),
                 );
               },
               child: Text('Suivant', style: TextStyle(color: Colors.black)),
@@ -99,10 +118,68 @@ class FirstInfoScreen extends StatelessWidget {
   }
 }
 
-class SecondInfoScreen extends StatelessWidget {
+class SecondInfoScreen extends StatefulWidget {
+  final String email;
+
+  SecondInfoScreen({required this.email});
+
+  @override
+  _SecondInfoScreenState createState() => _SecondInfoScreenState();
+}
+
+class _SecondInfoScreenState extends State<SecondInfoScreen> {
+  final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
-  final String imagePath = 'assets/image2.png';
+  final TextEditingController passwordController = TextEditingController();
+  final CollectionReference _usersCollection =
+  FirebaseFirestore.instance.collection('users');
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+  Future<void> saveUserInfoToFirestore(String name, String email, CollectionReference usersCollection) async {
+    try {
+      await usersCollection.doc(FirebaseAuth.instance.currentUser!.uid).set({
+        'name': name,
+        'email': email,
+      });
+      print('Nom et email sauvegardés avec succès dans Cloud Firestore');
+    } catch (e) {
+      print('Erreur lors de la sauvegarde du nom et de l\'email dans Cloud Firestore: $e');
+    }
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (userDoc.exists) {
+          Map<String, dynamic> userData =
+          userDoc.data() as Map<String, dynamic>;
+          setState(() {
+            nameController.text =
+                userData['name'] ?? ''; // Assurez-vous que la clé dans Firestore est 'name'
+            emailController.text = userData['email'] ?? user.email ?? '';
+          });
+        } else {
+          // Utiliser le nom de l'utilisateur actuel s'il n'existe pas dans Firestore
+          setState(() {
+            nameController.text =
+                user.displayName ?? ''; // Utilisez le nom d'affichage de l'utilisateur actuel
+            emailController.text = user.email ?? '';
+          });
+        }
+      }
+    } catch (e) {
+      print('Erreur lors de la récupération des données de l\'utilisateur: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,8 +214,6 @@ class SecondInfoScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 20.0),
-            Image.asset(imagePath),
-            SizedBox(height: 22.0),
             TextField(
               controller: emailController,
               decoration: InputDecoration(
@@ -155,21 +230,12 @@ class SecondInfoScreen extends StatelessWidget {
               style: TextStyle(color: Colors.white),
             ),
             SizedBox(height: 20.0),
-            InternationalPhoneNumberInput(
-              onInputChanged: (PhoneNumber number) {},
-              onInputValidated: (bool value) {},
-              selectorConfig: SelectorConfig(
-                selectorType: PhoneInputSelectorType.BOTTOM_SHEET,
-              ),
-              ignoreBlank: false,
-              autoValidateMode: AutovalidateMode.disabled,
-              selectorTextStyle: TextStyle(color: Color(0xFF039e8e)),
-              textFieldController: phoneController,
-              formatInput: false,
-              keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
-              inputDecoration: InputDecoration(
-                prefixIcon: Icon(Icons.phone, color: Color(0xFF039e8e)),
-                hintText: 'Numéro du téléphone',
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                prefixIcon: Icon(Icons.lock, color: Color(0xFF039e8e)),
+                hintText: 'Mot de passe',
                 fillColor: Colors.grey[850],
                 filled: true,
                 border: OutlineInputBorder(
@@ -178,8 +244,7 @@ class SecondInfoScreen extends StatelessWidget {
                 ),
                 hintStyle: TextStyle(color: Colors.white60),
               ),
-              textStyle: TextStyle(color: Colors.white),
-              cursorColor: Colors.white,
+              style: TextStyle(color: Colors.white),
             ),
             SizedBox(height: 20.0),
             ElevatedButton(
@@ -190,280 +255,32 @@ class SecondInfoScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(30.0),
                 ),
               ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => VehicleInfoPage()),
-                );
-              },
-              child: Text('Suivant', style: TextStyle(color: Colors.black)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class VehicleInfoPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    double sidePadding = 20.0;
-    double elementSpacing = 10.0;
-    double titleFontSize = 28.0;
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: Text(
-          'Informations du véhicule',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: sidePadding),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Entrer les informations sur votre véhicule (*facultatif)',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: titleFontSize, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: elementSpacing * 5),
-            _buildInputField(context, 'Marque', Icons.directions_car),
-            SizedBox(height: elementSpacing),
-            _buildInputField(context, 'Plaque d\'immatriculation', Icons.featured_video),
-            SizedBox(height: elementSpacing),
-            _buildInputField(context, 'Nombre de places', Icons.event_seat),
-            SizedBox(height: elementSpacing * 8),
-            _buildRoundedButton(context, 'Suivant', Color(0xFF039e8e), Colors.black),
-            SizedBox(height: elementSpacing),
-            _buildRoundedButton(context, 'Dépasser cette étape', Colors.grey, Colors.black),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInputField(BuildContext context, String label, IconData icon) {
-    return TextFormField(
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.white),
-        fillColor: Colors.grey.shade800,
-        filled: true,
-        prefixIcon: Icon(icon, color: Color(0xFF039e8e)),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30.0),
-          borderSide: BorderSide(color: Colors.transparent),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30.0),
-          borderSide: BorderSide(color: Colors.transparent),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30.0),
-          borderSide: BorderSide(color: Colors.transparent),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoundedButton(BuildContext context, String text, Color backgroundColor, Color textColor) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        foregroundColor: textColor,
-        backgroundColor: backgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
-        padding: EdgeInsets.symmetric(vertical: 15),
-      ),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => DrivingLicenseInfoScreen()),
-        );
-      },
-      child: Text(text, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-    );
-  }
-}
-
-class DrivingLicenseInfoScreen extends StatelessWidget {
-  final ImagePicker _picker = ImagePicker();
-
-  Future<void> _pickImage(BuildContext context, String side) async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {}
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,  // Ajoutez cette ligne
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Entrer les informations sur votre permis de conduire (*facultatif)',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 22.0, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 40),
-            _buildButton(context, 'Insérer le recto de votre permis', Icons.image, () => _pickImage(context, 'front')),
-            SizedBox(height: 20),
-            _buildButton(context, 'Insérer le verso de votre permis', Icons.image, () => _pickImage(context, 'back')),
-            SizedBox(height: 20),
-            _buildButton(context, 'Insérer votre photo d\'identité', Icons.image, () => _pickImage(context, 'identity_photo')),
-            SizedBox(height: 40),
-            _buildRoundedButton(context, 'Suivant', Color(0xFF039e8e), Colors.black),
-            SizedBox(height: 20),
-            _buildRoundedButton(context, 'Passer cette étape', Colors.grey, Colors.black),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildButton(BuildContext context, String text, IconData icon, Function() onPressed) {
-    return TextButton(
-      style: TextButton.styleFrom(
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.grey.shade800,
-        padding: EdgeInsets.symmetric(vertical: 20.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
-      ),
-      onPressed: onPressed,
-      child: Row(
-        children: <Widget>[
-          SizedBox(width: 10),
-          Icon(icon, color: Color(0xFF039e8e), size: 24.0),
-          SizedBox(width: 10),
-          Text(text),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRoundedButton(BuildContext context, String text, Color backgroundColor, Color textColor) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        foregroundColor: textColor,
-        backgroundColor: backgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
-        padding: EdgeInsets.symmetric(vertical: 20.0),
-      ),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => MotDepasse()),
-        );
-      },
-      child: Text(text, style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
-    );
-  }
-}
-
-class MotDepasse extends StatelessWidget {
-  final IconData lockIcon = Icons.lock;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,  // Ajoutez cette ligne
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Introduire un mot de passe',
-              style: TextStyle(fontSize: 28, color: Colors.white),
-            ),
-            SizedBox(height: 10),
-            Image.asset(
-              'assets/image4.jpeg',
-              height: 300,
-              width: 300,
-            ),
-            SizedBox(height: 20),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10.0),
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Mot de passe',
-                  filled: true,
-                  fillColor: Colors.grey[800],
-                  prefixIcon: Icon(lockIcon, color: Color(0xFF039e8e)),
-                  suffixIcon: Icon(Icons.visibility, color: Color(0xFF039e8e)),
-                  border: InputBorder.none,
-                  labelStyle: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10.0),
-              child: TextFormField(
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Confirmer votre mot de passe',
-                  filled: true,
-                  fillColor: Colors.grey[800],
-                  prefixIcon: Icon(lockIcon, color: Color(0xFF039e8e)),
-                  suffixIcon: Icon(Icons.visibility, color: Color(0xFF039e8e)),
-                  border: InputBorder.none,
-                  labelStyle: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
+              onPressed: () async {
+                String email = emailController.text;
+                String password = passwordController.text;
+                String name = nameController.text;
+                await saveUserInfoToFirestore(name, email, _usersCollection);
+                try {
+                  UserCredential userCredential =
+                  await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                    email: email,
+                    password: password,
+                  );
+                  Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => Acceuil(),));
+                    MaterialPageRoute(builder: (context) => Acceuil()),
+                  );
+                } catch (e) {
+                  print('Erreur d\'inscription: $e');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur d\'inscription: $e'),
+                    ),
+                  );
+                }
               },
-              child: Text('Suivant', style: TextStyle(color: Colors.black)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF039e8e),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-                padding: EdgeInsets.symmetric(horizontal: 155, vertical: 20),
-              ),
-            ),
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [],
+              child:
+              Text('S\'inscrire', style: TextStyle(color: Colors.black)),
             ),
           ],
         ),

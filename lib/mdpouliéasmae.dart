@@ -1,7 +1,10 @@
 import 'login.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class MdpOublie extends StatelessWidget {
+  final TextEditingController emailController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   void _showResetSuccessMessage(BuildContext context) {
     showDialog(
@@ -9,7 +12,7 @@ class MdpOublie extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Réinitialisation réussie"),
-          content: Text("Mot de passe réinitialisé avec succès. Passez à la connexion maintenant."),
+          content: Text("Email de réinitialisation du mot de passe est envoyé avec succès. Confirmez l'email."),
           actions: [
             TextButton(
               onPressed: () {
@@ -21,6 +24,33 @@ class MdpOublie extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _resetPassword(BuildContext context) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: emailController.text);
+      _showResetSuccessMessage(context);
+    } catch (e) {
+      print("Erreur lors de la réinitialisation du mot de passe: $e");
+      // Afficher une boîte de dialogue pour informer l'utilisateur de l'erreur
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Erreur"),
+            content: Text("Une erreur s'est produite lors de la réinitialisation du mot de passe. Veuillez réessayer."),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text("OK"),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -46,7 +76,7 @@ class MdpOublie extends StatelessWidget {
               ),
               SizedBox(height: 20.0),
               Text(
-                'Veuillez saisir votre nouveau mot de passe ci-dessous.',
+                'Veuillez saisir votre e-mail ci-dessous.',
                 style: TextStyle(color: Colors.white70, fontSize: 16.0),
                 textAlign: TextAlign.center,
               ),
@@ -59,36 +89,22 @@ class MdpOublie extends StatelessWidget {
               ),
               SizedBox(height: 40.0),
               TextFormField(
-                obscureText: true,
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
                 style: TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Nouveau mot de passe',
+                  hintText: 'Adresse e-mail',
                   hintStyle: TextStyle(color: Colors.white70),
                   filled: true,
                   fillColor: Colors.white24,
-                  prefixIcon: Icon(Icons.lock, color: Colors.teal),
+                  prefixIcon: Icon(Icons.email, color: Colors.teal),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30.0),
                     borderSide: BorderSide.none,
                   ),
                 ),
               ),
-              SizedBox(height: 16.0),
-              TextFormField(
-                obscureText: true,
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Confirmez le mot de passe',
-                  hintStyle: TextStyle(color: Colors.white70),
-                  filled: true,
-                  fillColor: Colors.white24,
-                  prefixIcon: Icon(Icons.lock, color: Colors.teal),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.0),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
+
               SizedBox(height: 16.0),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -99,10 +115,10 @@ class MdpOublie extends StatelessWidget {
                   minimumSize: Size(double.infinity, 50), // Largeur infinie, hauteur de 50
                 ),
                 onPressed: () {
-                  _showResetSuccessMessage(context);
+                  _resetPassword(context); // Appeler la fonction de réinitialisation du mot de passe
                 },
                 child: Text(
-                  'Réinitialiser le mot de passe',
+                  'Envoyer l email de réinitialisation',
                   style: TextStyle(fontSize: 20.0, color: Colors.black),
                 ),
               ),
@@ -126,3 +142,5 @@ class MdpOublie extends StatelessWidget {
     );
   }
 }
+
+

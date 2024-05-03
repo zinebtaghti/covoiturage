@@ -38,7 +38,8 @@ dependencies:
   flutter_rating_bar: ^4.0.0
   firebase_messaging: ^14.8.1
   firebase_database: ^10.5.1
-  flutter_svg: ^2.0.10
+  firebase_auth: ^4.19.2
+  firebase_admin: ^0.2.0
   #emoji_picker_flutter: ^2.2.0
 
   # The following adds the Cupertino Icons font to your application.

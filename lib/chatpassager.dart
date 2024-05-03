@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Communiquer avec le passager',
+      title: 'Communiquer avec le conducteur',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         primaryColor: Color(0xFF039e8e),
@@ -35,6 +41,24 @@ class Message {
   bool seen;
 
   Message({required this.text, required this.time, this.seen = false});
+
+  // Convertir un objet Message en Map
+  Map<String, dynamic> toJson() {
+    return {
+      'text': text,
+      'time': time.toString(), // Convertir la date en string
+      'seen': seen
+    };
+  }
+
+  // Créer un objet Message à partir d'un Map
+  factory Message.fromJson(Map<dynamic, dynamic> json) {
+    return Message(
+      text: json['text'],
+      time: DateTime.parse(json['time']), // Convertir la date string en DateTime
+      seen: json['seen'],
+    );
+  }
 }
 
 class ChatScreen extends StatefulWidget {
@@ -45,27 +69,37 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final List<Message> _messages = [];
+  final DatabaseReference _databaseReference = FirebaseDatabase.instance.reference();
 
-  void _sendMessage(String text) {
-    if (text.trim().isNotEmpty) {
+  @override
+  void initState() {
+    super.initState();
+    fetchMessages(); // Récupérer les messages existants
+  }
+
+  // Fonction pour récupérer les messages
+  void fetchMessages() {
+    _databaseReference.child('users').child('userID').child('messages').onChildAdded.listen((event) {
+      var message = Message.fromJson(event.snapshot.value as Map<dynamic, dynamic>);
       setState(() {
-        _messages.add(Message(text: text, time: DateTime.now(), seen: true)); // Add to the end of the list
+        _messages.add(message);
       });
+    });
+  }
+
+  // Fonction pour envoyer un message
+  void sendMessage(String text) {
+    if (text.trim().isNotEmpty) {
+      var message = Message(text: text, time: DateTime.now(), seen: true);
+      _databaseReference.child('users').child('userID').child('messages').push().set(message.toJson());
       _textController.clear();
     }
   }
 
-  Widget _buildMessageStatus(Message message) {
-    return Icon(
-      message.seen ? Icons.done_all : Icons.check,
-      size: 16,
-      color: message.seen ? Colors.blue : Colors.white,
-    );
-  }
-
+  // Construire le widget de bulle de message
   Widget _buildMessageBubble(Message message) {
     return Align(
-      alignment: Alignment.centerRight, // Change to Alignment.centerLeft for incoming messages
+      alignment: Alignment.centerRight,
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.8,
@@ -98,7 +132,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       fontSize: 12.0,
                     ),
                   ),
-                  _buildMessageStatus(message),
                 ],
               ),
             ],
@@ -113,12 +146,12 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: Text('Communiquer avec le passager'), // AppBar title
+        title: Text('Communiquer avec le conducteur'), // Titre de l'AppBar
       ),
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/image9.png'), // Use the correct asset for your background
+            image: AssetImage('assets/image9.png'), // Utilisez le bon asset pour votre arrière-plan
             fit: BoxFit.cover,
           ),
         ),
@@ -142,13 +175,13 @@ class _ChatScreenState extends State<ChatScreen> {
                     icon: Icon(Icons.emoji_emotions_outlined),
                     color: Color(0xFF039e8e),
                     onPressed: () {
-                      // TODO: Implement emoji keyboard functionality
+                      // TODO: Implémenter la fonctionnalité du clavier emoji
                     },
                   ),
                   Expanded(
                     child: TextField(
                       controller: _textController,
-                      onSubmitted: _sendMessage,
+                      onSubmitted: sendMessage,
                       style: TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: 'Écrire un message...',
@@ -160,7 +193,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   IconButton(
                     icon: Icon(Icons.send),
                     color: Color(0xFF039e8e),
-                    onPressed: () => _sendMessage(_textController.text),
+                    onPressed: () => sendMessage(_textController.text),
                   ),
                 ],
               ),
