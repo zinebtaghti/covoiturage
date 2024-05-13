@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 
 class ProfileManagementScreen extends StatefulWidget {
   const ProfileManagementScreen({Key? key}) : super(key: key);
@@ -15,6 +17,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController vehicleBrandController = TextEditingController();
+  final TextEditingController seatsNumberController = TextEditingController();
+  final TextEditingController licensePlateController = TextEditingController();
+  File? _idFrontImage;
+  File? _idBackImage;
+  File? _profileImage;
 
   bool _isDriver = false; // Indicateur si l'utilisateur est conducteur ou non
 
@@ -23,8 +31,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     super.initState();
     // Pré-remplir les champs de texte à partir de Firestore
     _fetchUserData();
+    // Récupérer les informations sur le véhicule et le permis
+    _fetchVehicleAndLicenseInfo();
   }
-
 
   Future<void> _fetchUserData() async {
     try {
@@ -38,6 +47,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             nameController.text = userData['name'] ?? ''; // Assurez-vous que la clé dans Firestore est 'name'
             emailController.text = userData['email'] ?? user.email ?? '';
             phoneController.text = userData['phone'] ?? '';
+
           });
         } else {
           // Utiliser le nom de l'utilisateur actuel s'il n'existe pas dans Firestore
@@ -52,20 +62,46 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     }
   }
 
-
-
-
+  Future<void> _fetchVehicleAndLicenseInfo() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        Map<String, dynamic> userData = {}; // Définir userData en dehors du bloc if
+        if (userDoc.exists) {
+          userData = userDoc.data() as Map<String, dynamic>;
+          setState(() {
+            vehicleBrandController.text = userData['vehicle_brand'] ?? '';
+            seatsNumberController.text = userData['seats_number'] ?? '';
+            licensePlateController.text = userData['license_plate'] ?? '';
+          });
+        }
+      }
+    } catch (e) {
+      print('Erreur lors de la récupération des informations sur le véhicule et le permis: $e');
+    }
+  }
 
   Future<void> _pickImage(String purpose) async {
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    print("$purpose Image Selected: ${image?.path}");
+    setState(() {
+      if (purpose == 'Insérer votre photo d\'identité') {
+        _idFrontImage = File(image!.path);
+      } else if (purpose == 'Insérer le recto de votre permis') {
+        _idBackImage = File(image!.path);
+      } else if (purpose == 'Ajouter le verso de votre permis') {
+        _profileImage = File(image!.path);
+      }
+    });
   }
-
 
   Future<void> _saveProfileInfo() async {
     final String name = nameController.text.trim();
     final String email = emailController.text.trim();
     final String phone = phoneController.text.trim();
+    final String vehicleBrand = vehicleBrandController.text.trim();
+    final String seatsNumber = seatsNumberController.text.trim();
+    final String licensePlate = licensePlateController.text.trim();
 
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -75,9 +111,17 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
           if (name.isNotEmpty) 'name': name,
           if (email.isNotEmpty) 'email': email,
           if (phone.isNotEmpty) 'phone': phone,
+          'vehicle_brand': vehicleBrand,
+          'seats_number': seatsNumber,
+          'license_plate': licensePlate,
         };
 
         await FirebaseFirestore.instance.collection('users').doc(userId).set(userData, SetOptions(merge: true));
+
+        if (_idFrontImage != null && _idBackImage != null && _profileImage != null) {
+          // Enregistrer les images dans Cloud Storage
+          await _uploadImages(userId);
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -95,12 +139,33 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     }
   }
 
+  Future<void> _uploadImages(String userId) async {
+    try {
+      final Reference idFrontRef = FirebaseStorage.instance.ref().child('id_front_$userId.jpg');
+      final Reference idBackRef = FirebaseStorage.instance.ref().child('id_back_$userId.jpg');
+      final Reference profileRef = FirebaseStorage.instance.ref().child('profile_$userId.jpg');
+
+      await idFrontRef.putFile(_idFrontImage!);
+      await idBackRef.putFile(_idBackImage!);
+      await profileRef.putFile(_profileImage!);
+
+      final String idFrontUrl = await idFrontRef.getDownloadURL();
+      final String idBackUrl = await idBackRef.getDownloadURL();
+      final String profileUrl = await profileRef.getDownloadURL();
+
+      // Enregistrer les URL dans Firestore
+      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        'id_front_url': idFrontUrl,
+        'id_back_url': idBackUrl,
+        'profile_url': profileUrl,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      print('Erreur lors de l\'enregistrement des images dans Cloud Storage: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    print('Texte du champ du nom: ${nameController.text}');
-    print('Texte du champ de l\'email: ${emailController.text}');
-    print('Texte du champ du téléphone: ${phoneController.text}');
     return Scaffold(
       appBar: AppBar(title: Text('Gestion de Profil')),
       body: SingleChildScrollView(
@@ -110,20 +175,19 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
           children: [
             buildSectionTitle('Informations Personnelles'),
             SizedBox(height: 20),
-            buildTextField(controller: nameController, icon: Icons.person, hintText: 'Nom complet'),
+            buildTextField(controller: nameController, icon: Icons.person, hintText: 'Nom complet', onChanged: (value) {  }),
             SizedBox(height: 20),
-            buildTextField(controller: emailController, icon: Icons.email, hintText: 'Adresse email', keyboardType: TextInputType.emailAddress),
+            buildTextField(controller: emailController, icon: Icons.email, hintText: 'Adresse email', keyboardType: TextInputType.emailAddress, onChanged: (value) {  }),
             SizedBox(height: 20),
-            buildTextField(controller: phoneController, icon: Icons.phone, hintText: 'Numéro de téléphone', keyboardType: TextInputType.phone),
+            buildTextField(controller: phoneController, icon: Icons.phone, hintText: 'Numéro de téléphone', keyboardType: TextInputType.phone, onChanged: (value) {  }),
             SizedBox(height: 20),
             Divider(color: Colors.grey[700]),
             buildSectionTitle('Informations sur le Véhicule'),
+            buildTextField(controller: vehicleBrandController, icon: Icons.directions_car, hintText: 'Marque du véhicule', onChanged: (value) { var _vehicleBrand = value; }),
             SizedBox(height: 20),
-            buildTextField(icon: Icons.directions_car, hintText: 'Marque du véhicule'),
+            buildTextField(controller: seatsNumberController, icon: Icons.event_seat, hintText: 'Nombre de places', onChanged: (value) { var _seatsNumber = value; }),
             SizedBox(height: 20),
-            buildTextField(icon: Icons.event_seat, hintText: 'Nombre de places'),
-            SizedBox(height: 20),
-            buildTextField(icon: Icons.featured_video, hintText: 'Plaque d\'immatriculation'),
+            buildTextField(controller: licensePlateController, icon: Icons.featured_video, hintText: 'Plaque d\'immatriculation', onChanged: (value) { var _licensePlate = value; }),
             SizedBox(height: 20),
             Divider(color: Colors.grey[700]),
             buildSectionTitle('Informations sur le Permis de Conduire'),
@@ -135,8 +199,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             _buildButton(context, 'Ajouter le verso de votre permis', Icons.image),
             SizedBox(height: 30),
             Divider(color: Colors.grey[700]),
-            _buildRoundedButton(context, 'Enregistrer', Color(0xFF039e8e), Colors.black),
-            // Autres champs et boutons
+            _buildRoundedButton(context, 'Enregistrer', Color(0xFF039e8e), Colors.black, onPressed: () => _saveProfileInfo()),
+
           ],
         ),
       ),
@@ -147,9 +211,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     );
   }
 
-  Widget buildTextField({TextEditingController? controller, required IconData icon, required String hintText, TextInputType keyboardType = TextInputType.text}) {
+  Widget buildTextField({required TextEditingController controller, required IconData icon, required String hintText, TextInputType keyboardType = TextInputType.text, required Function(String value) onChanged}) {
     return TextField(
       controller: controller,
+      onChanged: onChanged,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: Color(0xFF039e8e)),
         hintText: hintText,
@@ -192,7 +257,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     );
   }
 
-  Widget _buildRoundedButton(BuildContext context, String text, Color backgroundColor, Color textColor) {
+  Widget _buildRoundedButton(BuildContext context, String text, Color backgroundColor, Color textColor, {required Future<void> Function() onPressed}) {
     return Container(
       width: double.infinity,
       child: ElevatedButton(
@@ -208,4 +273,3 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     );
   }
 }
-

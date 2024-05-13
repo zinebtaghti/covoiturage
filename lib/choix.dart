@@ -66,7 +66,7 @@ class Acceuil extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => Rechercher(),),
+                      MaterialPageRoute(builder: (context) => Rechercher()),
                     );
                   },
                   child: Text(

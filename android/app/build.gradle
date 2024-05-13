@@ -1,14 +1,20 @@
 buildscript {
+    ext.kotlin_version = '1.9.23' // La dernière version de Kotlin
+
     repositories {
         google()
+        mavenCentral() // Remplacement de jcenter par mavenCentral
         jcenter()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.0'
-        classpath 'com.google.gms:google-services:4.4.1' // Placez la méthode classpath() ici
+        classpath 'com.android.tools.build:gradle:7.0.4' // Mise à jour vers une version plus récente de Gradle
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version" // Kotlin Gradle Plugin
+        classpath 'com.google.gms:google-services:4.4.1' // Google Services plugin
+        // Conservez les autres dépendances ici
     }
 }
+
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -52,12 +58,9 @@ android {
     }
 
     defaultConfig {
+        // Adjust the minSdkVersion to 20 as suggested by Flutter Fix
         minSdkVersion 21
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId "com.example.covoiturage"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -65,8 +68,7 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Configure signing options for release build if necessary.
             signingConfig signingConfigs.debug
         }
     }
@@ -75,7 +77,8 @@ android {
 flutter {
     source '../..'
 }
-/*dependencies {
-    classpath 'com.google.gms:google-services:4.4.1'
-}*/
-apply plugin: 'com.google.gms.google-services'
+dependencies {
+
+    implementation platform("org.jetbrains.kotlin:kotlin-bom:1.8.0")
+}
+apply plugin: 'com.google.gms.google-services' // Google Services plugin applied

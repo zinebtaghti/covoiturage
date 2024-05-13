@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'chatpassager.dart';
+import 'suivi.dart'; // Assurez-vous d'importer le fichier correctement
 import 'choix.dart';
-import 'evaluerpassager.dart';
-
 class TrajetConducteur extends StatelessWidget {
+  final String source;
+  final String destination;
+
+  TrajetConducteur({required this.source, required this.destination});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,21 +45,21 @@ class TrajetConducteur extends StatelessWidget {
                       () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => ChatScreen()),
+                      MaterialPageRoute(builder: (context) => ChatScreenp()),
                     );
                     print('Contacter passager');
                   },
                 ),
                 _buildCircleButton(
                   context,
-                  'Évaluer',
-                  Icons.star,
+                  'Suivre trajet',
+                  Icons.map,
                       () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => DriverRatingScreen()),
+                      MaterialPageRoute(builder: (context) => MapScreen(source: source, destination: destination)),
                     );
-                    print('Évaluer');
+                    print('Suivre trajet');
                   },
                 ),
                 _buildCircleButton(
@@ -82,20 +86,20 @@ class TrajetConducteur extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        RawMaterialButton(
-          onPressed: onPressed,
-          child: Icon(icon, color: Colors.white, size: 30.0),
-          shape: CircleBorder(),
-          padding: EdgeInsets.all(20.0),
-          fillColor: Color(0xFF039E8E),
-          elevation: 2.0,
-        ),
-        SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(color: Colors.white),
-        ),
-      ],
+      RawMaterialButton(
+      onPressed: onPressed,
+      child: Icon(icon, color: Colors.white, size: 30.0),
+      shape: CircleBorder(),
+      padding: EdgeInsets.all(20.0),
+      fillColor: Color(0xFF039E8E),
+      elevation: 2.0,
+    ),
+    SizedBox(height: 8),
+    Text(
+    label,
+    style: TextStyle(color: Colors.white),
+    ),
+    ],
     );
-  }
+    }
 }

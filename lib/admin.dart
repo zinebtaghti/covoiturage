@@ -293,6 +293,7 @@ class AdminDashboard extends StatelessWidget {
           return Center(child: Text('Erreur: ${snapshot.error}'));
         } else {
           int totalUsers = snapshot.data?['totalUsers'];
+          int totalTrips = snapshot.data?['totalTrips'];
           List<UserData> userData = snapshot.data?['userData'];
 
           return Scaffold(
@@ -329,9 +330,18 @@ class AdminDashboard extends StatelessWidget {
                         SizedBox(width: 8),
                         Text(
                           'Total des utilisateurs: $totalUsers',
-                          style: TextStyle(fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8), // Espacement entre les deux lignes de texte
+                    Row(
+                      children: [
+                        Icon(Icons.info, color: Color(0xFF039e8e)),
+                        SizedBox(width: 8),
+                        Text(
+                          'Total des trajets: $totalTrips',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                       ],
                     ),
@@ -389,14 +399,41 @@ class AdminDashboard extends StatelessWidget {
 
   Future<Map<String, dynamic>> _fetchUserData() async {
     try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('users').get();
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection(
+          'users').get();
       int totalUsers = querySnapshot.size;
+      int totalTrips = 0; // Ajout du total des trajets
       List<UserData> userData = querySnapshot.docs.map((doc) {
-        final Map<String, dynamic>? data = doc.data() as Map<String, dynamic>? ;
-        final String name = data != null && data.containsKey('name') ? data['name'] : 'Utilisateur';
-        final double rating = data != null && data.containsKey('rating') ? data['rating'] : 0.0;
-        final int trips = data != null && data.containsKey('trips') ? data['trips'] : 0;
-        final List<String> comments = data != null && data.containsKey('comments') ? List<String>.from(data['comments']) : [];
+        final Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
+        final String name = data != null && data.containsKey('name')
+            ? data['name']
+            : 'Utilisateur';
+        double rating = data != null && data.containsKey('rating')
+            ? data['rating']
+            : 0.0;
+        int trips = data != null && data.containsKey('trips')
+            ? data['trips']
+            : 0;
+        List<String> comments = data != null && data.containsKey('comments')
+            ? List<String>.from(data['comments'])
+            : [];
+
+        // Ajout des exemples de commentaires
+        if (name == 'zineb taghti') {
+          rating = 4.5;
+          trips = 10;
+          comments.addAll(['Bon travail!', 'Très professionnel']);
+        } else if (name == 'asmae lahlou') {
+          rating = 3.7;
+          trips = 7;
+          comments.addAll(['Sympathique', 'Bon conducteur']);
+        } else if (name == 'younes') {
+          rating = 3.7;
+          trips = 7;
+          comments.addAll(['très gentil', 'Bonne personne']);
+        }
+
+        totalTrips += trips; // Mise à jour du total des trajets
 
         return UserData(
           name: name,
@@ -406,14 +443,17 @@ class AdminDashboard extends StatelessWidget {
         );
       }).toList();
 
-      return {'totalUsers': totalUsers, 'userData': userData};
+      return {
+        'totalUsers': totalUsers,
+        'totalTrips': totalTrips,
+        'userData': userData
+      };
     } catch (e) {
       throw 'Erreur lors de la récupération des données utilisateur: $e';
     }
   }
 }
-
-class UserData {
+  class UserData {
   final String name;
   final double rating;
   final int trips;
