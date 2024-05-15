@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class AdminScreen extends StatelessWidget {
   @override
@@ -83,16 +84,14 @@ class ManageUsers extends StatefulWidget {
 }
 
 class _ManageUsersState extends State<ManageUsers> {
-  List<DocumentSnapshot>? _userDocuments; // Liste des documents d'utilisateurs Firebase
+  List<DocumentSnapshot>? _userDocuments;
 
   @override
   void initState() {
     super.initState();
-    // Récupérer la liste des documents d'utilisateurs Firebase lors de l'initialisation du widget
     _getFirestoreUsers();
   }
 
-  // Méthode pour récupérer la liste des documents d'utilisateurs à partir de Firestore
   Future<void> _getFirestoreUsers() async {
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('users').get();
@@ -108,7 +107,21 @@ class _ManageUsersState extends State<ManageUsers> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Gérer les utilisateurs'),
+        backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        title: Text(
+          'Gérer les utilisateurs',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 25.0,
+          ),
+        ),
       ),
       body: Container(
         color: Colors.black,
@@ -125,14 +138,13 @@ class _ManageUsersState extends State<ManageUsers> {
                   userName,
                   style: TextStyle(color: Colors.white),
                 ),
-                // Ajoutez les actions pour chaque utilisateur ici
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     IconButton(
                       icon: Icon(Icons.warning, color: Color(0xFF039e8e)),
                       onPressed: () {
-                        _showWarningDialog(context, userName);
+                        _showWarningDialog(context, userName, 'user_token_here'); // Replace with actual token
                       },
                     ),
                     IconButton(
@@ -182,17 +194,13 @@ class _ManageUsersState extends State<ManageUsers> {
               child: Text('Supprimer', style: TextStyle(color: Color(0xFF039e8e))),
               onPressed: () async {
                 try {
-                  // Supprimer le document de l'utilisateur de Firestore
                   await FirebaseFirestore.instance.collection('users').doc(userDoc.id).delete();
-                  // Actualiser l'interface utilisateur
                   setState(() {
                     _userDocuments!.remove(userDoc);
                   });
-                  // Fermer la boîte de dialogue
                   Navigator.of(context).pop();
                 } catch (e) {
                   print('Erreur lors de la suppression de l\'utilisateur: $e');
-                  // Afficher un message d'erreur si la suppression échoue
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text('Erreur lors de la suppression de l\'utilisateur.'),
                   ));
@@ -212,7 +220,6 @@ class _ManageUsersState extends State<ManageUsers> {
       builder: (BuildContext context) {
         final userData = userDoc.data() as Map<String, dynamic>;
         final userName = userData['email'] ?? 'Utilisateur';
-        final bool isBlocked = userData['blocked'] ?? false; // Vérifier si le compte est déjà bloqué
 
         return AlertDialog(
           backgroundColor: Colors.grey[900],
@@ -229,17 +236,13 @@ class _ManageUsersState extends State<ManageUsers> {
               child: Text('Bloquer', style: TextStyle(color: Color(0xFF039e8e))),
               onPressed: () async {
                 try {
-                  // Mettre à jour le champ 'blocked' dans Firestore pour marquer le compte comme bloqué
                   await FirebaseFirestore.instance.collection('users').doc(userDoc.id).update({'blocked': true});
-                  // Actualiser l'interface utilisateur
                   setState(() {
                     _userDocuments!.remove(userDoc);
                   });
-                  // Fermer la boîte de dialogue
                   Navigator.of(context).pop();
                 } catch (e) {
                   print('Erreur lors du blocage du compte: $e');
-                  // Afficher un message d'erreur si le blocage échoue
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text('Erreur lors du blocage du compte.'),
                   ));
@@ -252,14 +255,31 @@ class _ManageUsersState extends State<ManageUsers> {
     );
   }
 
-  void _showWarningDialog(BuildContext context, String user) {
+  void _sendWarningNotification(String userId, String token) async {
+    HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('sendWarningNotification');
+    try {
+      final response = await callable.call(<String, dynamic>{
+        'userId': userId,
+        'token': token,
+      });
+      if (response.data['success']) {
+        print('Notification envoyée avec succès');
+      } else {
+        print('Échec de l\'envoi de la notification');
+      }
+    } catch (e) {
+      print('Erreur: $e');
+    }
+  }
+
+  void _showWarningDialog(BuildContext context, String userId, String token) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.grey[900],
           title: Text('Confirmation', style: TextStyle(color: Colors.white)),
-          content: Text('Voulez-vous vraiment envoyer un avertissement à $user?', style: TextStyle(color: Colors.white)),
+          content: Text('Voulez-vous vraiment envoyer un avertissement à cet utilisateur?', style: TextStyle(color: Colors.white)),
           actions: <Widget>[
             TextButton(
               child: Text('Annuler', style: TextStyle(color: Color(0xFF039e8e))),
@@ -270,7 +290,7 @@ class _ManageUsersState extends State<ManageUsers> {
             TextButton(
               child: Text('Avertir', style: TextStyle(color: Color(0xFF039e8e))),
               onPressed: () {
-                //
+                _sendWarningNotification(userId, token);
                 Navigator.of(context).pop();
               },
             ),
@@ -280,7 +300,6 @@ class _ManageUsersState extends State<ManageUsers> {
     );
   }
 }
-
 class AdminDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -427,8 +446,8 @@ class AdminDashboard extends StatelessWidget {
           rating = 3.7;
           trips = 7;
           comments.addAll(['Sympathique', 'Bon conducteur']);
-        } else if (name == 'younes') {
-          rating = 3.7;
+        } else if (name == 'younes amerga') {
+          rating = 4.7;
           trips = 7;
           comments.addAll(['très gentil', 'Bonne personne']);
         }
@@ -453,7 +472,7 @@ class AdminDashboard extends StatelessWidget {
     }
   }
 }
-  class UserData {
+class UserData {
   final String name;
   final double rating;
   final int trips;

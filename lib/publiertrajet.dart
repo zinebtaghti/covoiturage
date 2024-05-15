@@ -1,41 +1,80 @@
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
+import 'package:covoiturage/suiviconducteur.dart';
+import 'package:covoiturage/trajetconducteur.dart';
+import 'package:covoiturage/trajetpassager.dart';
 import 'package:geocoding/geocoding.dart' as Geo;
 import 'package:location/location.dart' as Loc;
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'trajetconducteur.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 class DriverTrip {
   final String departureLocation;
   final String destination;
   final double price;
-  final DateTime departureTime;
+  final String driverName;
 
   DriverTrip({
     required this.departureLocation,
     required this.destination,
     required this.price,
-    required this.departureTime,
+    required this.driverName,
   });
 
-  factory DriverTrip.fromFirestore(DocumentSnapshot snapshot) {
+  factory DriverTrip.fromFirestore(DocumentSnapshot<Object?> snapshot) {
     Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
     return DriverTrip(
       departureLocation: data['departureLocation'],
       destination: data['destination'],
       price: data['price'].toDouble(),
-      departureTime: data['departureTime'].toDate(),
+      driverName: data['driverName'],
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'departureLocation': departureLocation,
+      'destination': destination,
+      'price': price,
+      'driverName': driverName,
+    };
+  }
+}
+class PassengerTrip {
+  final String departureLocation;
+  final String destination;
+  final double price;
+  final String passengerName;
+
+  PassengerTrip({
+    required this.departureLocation,
+    required this.destination,
+    required this.price,
+    required this.passengerName,
+  });
+
+  factory PassengerTrip.fromFirestore(DocumentSnapshot<Object?> snapshot) {
+    Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+    return PassengerTrip(
+      departureLocation: data['departureLocation'],
+      destination: data['destination'],
+      price: data['price'].toDouble(),
+      passengerName: data['passengerName'],
+    );
+  }
+
+  // Méthode pour convertir le PassengerTrip en Map pour le stockage dans Firestore
+  Map<String, dynamic> toMap() {
+    return {
+      'departureLocation': departureLocation,
+      'destination': destination,
+      'price': price,
+      'passengerName':passengerName,
+    };
   }
 }
 
-void main() async {
-  // Initialisez Firebase
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-
-  runApp(TestApp());
-}
+void main() => runApp(TestApp());
 
 class TestApp extends StatelessWidget {
   @override
@@ -43,7 +82,7 @@ class TestApp extends StatelessWidget {
     return MaterialApp(
       title: 'Test Navigation App',
       theme: ThemeData(
-        primarySwatch: Colors.teal,
+        primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.black,
       ),
       home: Publier(),
@@ -60,20 +99,20 @@ class _PublierState extends State<Publier> {
   final TextEditingController locationController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
-  Loc.Location location = Loc.Location();
   FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  List<DriverTrip> driverTrips=[];
-  List<DriverTrip> matchingTrips = [];
   bool noMatchingTrips = false;
-  bool showAvailableTripsButton = false;
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocationName();
   }
+
   Future<void> _getCurrentLocationName() async {
+    Loc.Location location = Loc.Location();
+
     bool serviceEnabled = await location.serviceEnabled();
     if (!serviceEnabled) {
       serviceEnabled = await location.requestService();
@@ -104,34 +143,44 @@ class _PublierState extends State<Publier> {
     }
   }
 
+  Stream<List<PassengerTrip>> getTripsStream() {
+    String departureLocation = locationController.text.trim().toLowerCase();
+    String destination = destinationController.text.trim().toLowerCase();
+    double price = double.tryParse(priceController.text) ?? double.infinity;
+
+    print("Searching for trips from $departureLocation to $destination with max price $price");
+
+    return firestore
+        .collection('PassengerTrip')
+        .where('departureLocation', isEqualTo: departureLocation)
+        .where('destination', isEqualTo: destination)
+        .where('price', isLessThanOrEqualTo: price)
+        .snapshots()
+        .map((querySnapshot) => querySnapshot.docs.map((doc) => PassengerTrip.fromFirestore(doc)).toList());
+  }
   Future<void> matchTrips() async {
-    setState(() {
-      matchingTrips.clear();
-      noMatchingTrips = true;
-    });
+    User? user = _auth.currentUser;
 
-    // Ajouter les données de trajet à Firestore
-    await firestore.collection('DriverTrip').add({
-      'departureLocation': locationController.text,
-      'destination': destinationController.text,
-      'price': double.tryParse(priceController.text) ?? 0.0,
-      'timestamp': DateTime.now(), // Ajouter une horodatage pour faciliter la recherche
-    });
+    if (user != null) {
+      // Récupérer les informations de l'utilisateur
+      DocumentSnapshot userDoc = await firestore.collection('users').doc(
+          user.uid).get();
+      String driverName = userDoc['name'];
 
-    // Rechercher les passagers avec des informations similaires
-    QuerySnapshot querySnapshot = await firestore.collection('DriverTrip')
-        .where('departureLocation', isEqualTo: locationController.text.toLowerCase())
-        .where('destination', isEqualTo: destinationController.text.toLowerCase())
-        .where('price', isLessThanOrEqualTo: double.tryParse(priceController.text) ?? 0.0)
-        .get();
 
-    querySnapshot.docs.forEach((doc) {
-      DriverTrip trip = DriverTrip.fromFirestore(doc);
+      // Ajouter les informations du trajet passager à la base de données
+      await firestore.collection('DriverTrip').add({
+        'departureLocation': locationController.text.trim().toLowerCase(),
+        'destination': destinationController.text.trim().toLowerCase(),
+        'price': double.tryParse(priceController.text) ?? 0.0,
+        'driverName': driverName,
+      });
+
+      // Mettre à jour l'état pour indiquer que la recherche est terminée
       setState(() {
-        matchingTrips.add(trip);
         noMatchingTrips = false;
       });
-    });
+    }
   }
 
 
@@ -139,23 +188,55 @@ class _PublierState extends State<Publier> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(""),
+        title: Text("Publier un trajet"),
         backgroundColor: Colors.black,
       ),
+      backgroundColor: Colors.black,
       body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            SizedBox(height: 100),
-            customTextField(locationController, 'Localisation actuelle', Icons.location_on),
             SizedBox(height: 20),
-            customTextField(destinationController, 'Destination', Icons.flag),
+            Text(
+              'Remplir les cases suivantes avec vos données convenables',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+              textAlign: TextAlign.center,
+            ),
             SizedBox(height: 20),
-            customTextField(priceController, 'Prix', Icons.attach_money, isNumeric: true),
+            TextField(
+              controller: locationController,
+              style: TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Localisation actuelle',
+                hintStyle: TextStyle(color: Colors.white),
+                prefixIcon: Icon(Icons.location_on, color: Colors.teal),
+              ),
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: destinationController,
+              style: TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Destination',
+                hintStyle: TextStyle(color: Colors.white),
+                prefixIcon: Icon(Icons.flag, color: Colors.teal),
+              ),
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: priceController,
+              style: TextStyle(color: Colors.white),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                hintText: 'Prix',
+                hintStyle: TextStyle(color: Colors.white),
+                prefixIcon: Icon(Icons.attach_money, color: Colors.teal),
+              ),
+            ),
             SizedBox(height: 30),
             ElevatedButton(
               onPressed: matchTrips,
-              child: Text('Publier un trajet'),
+              child: Text('Publier votre trajet'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
                 foregroundColor: Colors.white,
@@ -166,93 +247,92 @@ class _PublierState extends State<Publier> {
                 minimumSize: Size(double.infinity, 50),
               ),
             ),
-            if (showAvailableTripsButton)
-              ElevatedButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: Text('Trajets disponibles'),
-                        content: Container(
-                          width: double.maxFinite,
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: matchingTrips.length,
-                            itemBuilder: (context, index) {
-                              var trip = matchingTrips[index];
-                              return ListTile(
-                                title: Text('Départ: ${trip.departureLocation} - Destination: ${trip.destination} - Prix: ${trip.price}'),
-                                subtitle: Text('Heure de départ: ${trip.departureTime}'),
-                                onTap: () => chooseTrip(index),
-                              );
-                            },
-                          ),
-                        ),
-                        actions: <Widget>[
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => TrajetConducteur(source: '', destination: '',)),
-                              );
-                            },
-                            child: Text('choisir'),
-                          ),
-                        ],
-                      );
-                    },
+            StreamBuilder<List<PassengerTrip>>(
+              stream: getTripsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'Aucun trajet correspondant trouvé.',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   );
-                },
-                child: Text('Afficher les trajets disponibles'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            if (noMatchingTrips)
-              Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'Aucun trajet correspondant trouvé.',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
+                } else {
+                  List<PassengerTrip> trips = snapshot.data!.cast<PassengerTrip>();
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      children: [
+                        for (var trip in trips )
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ListTile(
+                                title: Text(
+                                  'Départ: ${trip.departureLocation}, Destination: ${trip.destination}, Prix: ${trip.price}, Nom du passager:${trip.passengerName}',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                subtitle: Text(
+                                  'Heure de départ: À l\'instant',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => TrajetConducteur(source: '', destination: '',)),
+                                        );
+                                      },
+                                      child: Text('Accepter'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.teal,
+                                        foregroundColor: Colors.white,
+                                        textStyle: TextStyle(fontSize: 16.0),
+                                        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () {
+
+                                      },
+                                      child: Text('Refuser'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.grey,
+                                        foregroundColor: Colors.white,
+                                        textStyle: TextStyle(fontSize: 16.0),
+                                        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Divider(color: Colors.white),
+                            ],
+                          ),
+                      ],
+                    ),
+                  );
+                }
+              },
+            ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void chooseTrip(int index) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => TrajetConducteur(
-          source: matchingTrips[index].departureLocation,
-          destination: matchingTrips[index].destination,
-        ),
-      ),
-    );
-  }
-
-  Widget customTextField(TextEditingController controller, String hintText, IconData icon, {bool isNumeric = false}) {
-    return TextField(
-      controller: controller,
-      style: TextStyle(color: Colors.white),
-      keyboardType: isNumeric ? TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(color: Colors.white54),
-        prefixIcon: Icon(icon, color: Colors.teal),
-        filled: true,
-        fillColor: Colors.grey[850], // Dark gray fill
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
         ),
       ),
     );

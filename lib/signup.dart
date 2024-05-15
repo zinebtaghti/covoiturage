@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'choix.dart';
+import 'loginousignup.dart';
 
 class SignUp extends StatelessWidget {
   final TextEditingController nameController = TextEditingController();
@@ -48,11 +49,14 @@ class FirstInfoScreen extends StatelessWidget {
   final CollectionReference _usersCollection =
   FirebaseFirestore.instance.collection('users');
 
-  Future<void> saveUserInfoToFirestore(String name, CollectionReference usersCollection) async {
+  Future<void> saveUserInfoToFirestore(
+      String name, CollectionReference usersCollection) async {
     try {
-      await usersCollection.doc(FirebaseAuth.instance.currentUser!.uid).set({
+      await usersCollection
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .set({
         'name': name,
-        'email': '', // Vous pouvez laisser vide car l'e-mail sera ajouté dans la deuxième étape
+        'email': '', // Laisser vide car l'e-mail sera ajouté dans la deuxième étape
       });
       print('Nom sauvegardé avec succès dans Cloud Firestore');
     } catch (e) {
@@ -63,16 +67,36 @@ class FirstInfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SignUpOrLogin(),
+              ),
+            );
+          },
+        ),
+        title: Text(
+          '',
+          style: TextStyle(color: Colors.white),
+        ),
+        centerTitle: true,
+      ),
       backgroundColor: Colors.black,
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            Image.asset('assets/image1.jpeg'), // Assurez-vous que le chemin vers l'image est correct
             Text(
-              'Veuillez vous présenter',
-              style: TextStyle(fontSize: 24.0),
+              'Veuillez entrer votre nom complet',
+              style: TextStyle(fontSize: 24.0, color: Colors.white),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 30.0),
@@ -117,7 +141,6 @@ class FirstInfoScreen extends StatelessWidget {
     );
   }
 }
-
 class SecondInfoScreen extends StatefulWidget {
   final String email;
 
@@ -186,7 +209,7 @@ class _SecondInfoScreenState extends State<SecondInfoScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Informations de contact',
+          '',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Colors.black,
@@ -204,6 +227,7 @@ class _SecondInfoScreenState extends State<SecondInfoScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            Image.asset('assets/image2.png'),
             Text(
               'Entrer les informations du contact',
               style: TextStyle(

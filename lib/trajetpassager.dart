@@ -1,6 +1,5 @@
-import 'package:covoiturage/chatconducteur.dart';
 import 'package:flutter/material.dart';
-import 'chatpassager.dart';
+import 'chatconducteur.dart';
 import 'suivi.dart'; // Assurez-vous d'importer le fichier correctement
 import 'choix.dart';
 class TrajetPassager extends StatelessWidget {
@@ -46,7 +45,7 @@ class TrajetPassager extends StatelessWidget {
                       () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => ChatScreenc()),
+                      MaterialPageRoute(builder: (context) => ChatScreen()),
                     );
                     print('Contacter conducteur');
                   },
@@ -87,20 +86,20 @@ class TrajetPassager extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-      RawMaterialButton(
-      onPressed: onPressed,
-      child: Icon(icon, color: Colors.white, size: 30.0),
-      shape: CircleBorder(),
-      padding: EdgeInsets.all(20.0),
-      fillColor: Color(0xFF039E8E),
-      elevation: 2.0,
-    ),
-    SizedBox(height: 8),
-    Text(
-    label,
-    style: TextStyle(color: Colors.white),
-    ),
-    ],
+        RawMaterialButton(
+          onPressed: onPressed,
+          child: Icon(icon, color: Colors.white, size: 30.0),
+          shape: CircleBorder(),
+          padding: EdgeInsets.all(20.0),
+          fillColor: Color(0xFF039E8E),
+          elevation: 2.0,
+        ),
+        SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(color: Colors.white),
+        ),
+      ],
     );
-    }
+  }
 }

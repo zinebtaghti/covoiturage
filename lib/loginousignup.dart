@@ -1,3 +1,4 @@
+import 'package:covoiturage/welcome.dart';
 import 'package:flutter/material.dart';
 import 'signup.dart';
 import 'login.dart';
@@ -21,13 +22,26 @@ class SelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => WelcomeScreen()),
+            );
+          },
+        ),
+        backgroundColor: Colors.black,
+        elevation: 0,
+      ),
       backgroundColor: Colors.black,
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            'veillez sélectionner votre choix!',
+            'Veuillez sélectionner votre choix!',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white,
@@ -49,10 +63,11 @@ class SelectionScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginIn(),));
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginIn()),
+                );
               },
-              child: Text('se connecter'),
+              child: Text('Se connecter'),
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.black,
                 backgroundColor: Color(0xFF039E8E), // foreground (text) color
@@ -60,7 +75,8 @@ class SelectionScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(35.0),
                 ),
                 padding: EdgeInsets.symmetric(vertical: 15.0),
-                minimumSize: Size(double.infinity, 50), // Élargit le bouton pour qu'il occupe toute la largeur avec une hauteur de 50
+                minimumSize: Size(double.infinity, 60), // Élargit le bouton pour qu'il occupe toute la largeur avec une hauteur de 60
+                textStyle: TextStyle(fontSize: 20), // Change la taille de la police
               ),
             ),
           ),
@@ -70,19 +86,20 @@ class SelectionScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SignUp(),));
+                  context,
+                  MaterialPageRoute(builder: (context) => SignUp()),
+                );
               },
-              child: Text('s\'inscrire'),
+              child: Text('S\'inscrire'),
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.black,
-                backgroundColor:  Colors.grey, // foreground (text) color
+                backgroundColor: Colors.grey, // foreground (text) color
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30.0),
                 ),
                 padding: EdgeInsets.symmetric(vertical: 15.0),
-                minimumSize: Size(double.infinity, 50), // Élargit le bouton pour qu'il occupe toute la largeur avec une hauteur de 50
-
+                minimumSize: Size(double.infinity, 60), // Élargit le bouton pour qu'il occupe toute la largeur avec une hauteur de 60
+                textStyle: TextStyle(fontSize: 20), // Change la taille de la police
               ),
             ),
           ),

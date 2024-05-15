@@ -17,7 +17,7 @@ class WelcomeScreen extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(35.0),
             child: ElevatedButton(
               onPressed: () {
                 Navigator.push(

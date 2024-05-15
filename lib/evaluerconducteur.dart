@@ -3,6 +3,8 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class DriverRatingScreen extends StatefulWidget {
+  final String driverName;
+  DriverRatingScreen({required this.driverName});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -12,7 +14,7 @@ class DriverRatingScreen extends StatefulWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: DriverRatingScreen(),
+      home: DriverRatingScreen(driverName: '',),
     );
   }
 
@@ -134,6 +136,7 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
   void _submitRating() {
     double rating = _rating;
     String comment = _commentController.text;
+    String driverName = widget.driverName;
 
     // Référence à la base de données Firebase Realtime Database
     DatabaseReference databaseReference = FirebaseDatabase.instance.reference();
@@ -142,6 +145,7 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
     databaseReference.child('ratings').push().set({
       'rating': rating,
       'comment': comment,
+      'driverName' : driverName,
     }).then((_) {
       // Afficher une boîte de dialogue pour confirmer que l'évaluation a été enregistrée
       showDialog(
@@ -181,5 +185,4 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
         },
       );
     });
-  }
-}
+  }}

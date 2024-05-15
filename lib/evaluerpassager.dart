@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 
 
-class DriverRatingScreen extends StatefulWidget {
+class PassengerRatingScreen extends StatefulWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -13,7 +14,7 @@ class DriverRatingScreen extends StatefulWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: DriverRatingScreen(),
+      home: PassengerRatingScreen(),
     );
   }
 
@@ -23,7 +24,7 @@ class DriverRatingScreen extends StatefulWidget {
   _DriverRatingScreenState createState() => _DriverRatingScreenState();
 }
 
-class _DriverRatingScreenState extends State<DriverRatingScreen> {
+class _DriverRatingScreenState extends State<PassengerRatingScreen> {
   double _rating = 0.0;
   final TextEditingController _commentController = TextEditingController();
 
@@ -132,5 +133,56 @@ class _DriverRatingScreenState extends State<DriverRatingScreen> {
         ),
       ),
     );
+  }
+  void _submitRating() {
+    double rating = _rating;
+    String comment = _commentController.text;
+
+    // Référence à la base de données Firebase Realtime Database
+    DatabaseReference databaseReference = FirebaseDatabase.instance.reference();
+
+    // Enregistrer les données dans Firebase Realtime Database
+    databaseReference.child('ratings').push().set({
+      'rating': rating,
+      'comment': comment,
+    }).then((_) {
+      // Afficher une boîte de dialogue pour confirmer que l'évaluation a été enregistrée
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Succès'),
+            content: Text('Votre évaluation a été enregistrée avec succès !'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    }).catchError((error) {
+      // En cas d'erreur lors de l'enregistrement des données
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Erreur'),
+            content: Text('Une erreur s\'est produite lors de l\'enregistrement de l\'évaluation. Veuillez réessayer.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    });
   }
 }

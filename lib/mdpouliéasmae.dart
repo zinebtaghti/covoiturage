@@ -12,7 +12,7 @@ class MdpOublie extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Réinitialisation réussie"),
-          content: Text("Email de réinitialisation du mot de passe est envoyé avec succès. Confirmez l'email."),
+          content: Text("Un email de réinitialisation du mot de passe a été envoyé avec succès. Veuillez vérifier votre email."),
           actions: [
             TextButton(
               onPressed: () {
@@ -28,11 +28,10 @@ class MdpOublie extends StatelessWidget {
 
   Future<void> _resetPassword(BuildContext context) async {
     try {
-      await _auth.sendPasswordResetEmail(email: emailController.text);
+      await _auth.sendPasswordResetEmail(email: emailController.text.trim());
       _showResetSuccessMessage(context);
     } catch (e) {
       print("Erreur lors de la réinitialisation du mot de passe: $e");
-      // Afficher une boîte de dialogue pour informer l'utilisateur de l'erreur
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -57,6 +56,15 @@ class MdpOublie extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Text('', style: TextStyle(color: Colors.white)),
+          centerTitle: true,
+        ),
         backgroundColor: Colors.black,
         body: SingleChildScrollView(
           padding: EdgeInsets.all(32.0),
@@ -104,34 +112,33 @@ class MdpOublie extends StatelessWidget {
                   ),
                 ),
               ),
-
               SizedBox(height: 16.0),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF039E8E), // Couleur personnalisée du bouton
+                  backgroundColor: Color(0xFF039E8E),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30.0),
                   ),
-                  minimumSize: Size(double.infinity, 50), // Largeur infinie, hauteur de 50
+                  minimumSize: Size(double.infinity, 50),
                 ),
                 onPressed: () {
-                  _resetPassword(context); // Appeler la fonction de réinitialisation du mot de passe
+                  _resetPassword(context);
                 },
                 child: Text(
-                  'Envoyer l email de réinitialisation',
+                  'Envoyer l\'email de réinitialisation',
                   style: TextStyle(fontSize: 20.0, color: Colors.black),
                 ),
               ),
-              SizedBox(height: 1.0),
+              SizedBox(height: 16.0),
               TextButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => LoginIn(),),
+                    MaterialPageRoute(builder: (context) => LoginIn()),
                   );
                 },
                 child: Text(
-                  'Allez à la connexion?',
+                  'Retour à la connexion?',
                   style: TextStyle(color: Colors.white70),
                 ),
               ),
@@ -142,5 +149,3 @@ class MdpOublie extends StatelessWidget {
     );
   }
 }
-
-

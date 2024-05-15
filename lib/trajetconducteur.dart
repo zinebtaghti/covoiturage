@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'chatpassager.dart';
-import 'suivi.dart'; // Assurez-vous d'importer le fichier correctement
+import 'suiviconducteur.dart'; // Assurez-vous d'importer le fichier correctement
 import 'choix.dart';
 class TrajetConducteur extends StatelessWidget {
   final String source;
@@ -45,7 +45,7 @@ class TrajetConducteur extends StatelessWidget {
                       () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => ChatScreenp()),
+                      MaterialPageRoute(builder: (context) => ChatScreen()),
                     );
                     print('Contacter passager');
                   },

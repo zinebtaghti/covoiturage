@@ -1,18 +1,22 @@
 import 'package:covoiturage/publiertrajet.dart';
+import 'package:covoiturage/trajetpassager.dart';
 import 'package:geocoding/geocoding.dart' as Geo;
 import 'package:location/location.dart' as Loc;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PassengerTrip {
   final String departureLocation;
   final String destination;
   final double price;
+  final String passengerName;
 
   PassengerTrip({
     required this.departureLocation,
     required this.destination,
     required this.price,
+    required this.passengerName,
   });
 
   factory PassengerTrip.fromFirestore(DocumentSnapshot<Object?> snapshot) {
@@ -21,15 +25,49 @@ class PassengerTrip {
       departureLocation: data['departureLocation'],
       destination: data['destination'],
       price: data['price'].toDouble(),
+      passengerName: data['passengerName'],
     );
   }
 
-  // Méthode pour convertir le PassengerTrip en Map pour le stockage dans Firestore
   Map<String, dynamic> toMap() {
     return {
       'departureLocation': departureLocation,
       'destination': destination,
       'price': price,
+      'passengerName': passengerName,
+    };
+  }
+}
+
+class DriverTrip {
+  final String departureLocation;
+  final String destination;
+  final double price;
+  final String driverName;
+
+  DriverTrip({
+    required this.departureLocation,
+    required this.destination,
+    required this.price,
+    required this.driverName,
+  });
+
+  factory DriverTrip.fromFirestore(DocumentSnapshot<Object?> snapshot) {
+    Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+    return DriverTrip(
+      departureLocation: data['departureLocation'],
+      destination: data['destination'],
+      price: data['price'].toDouble(),
+      driverName: data['driverName'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'departureLocation': departureLocation,
+      'destination': destination,
+      'price': price,
+      'driverName':driverName,
     };
   }
 }
@@ -60,8 +98,8 @@ class _RechercherState extends State<Rechercher> {
   final TextEditingController destinationController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  List<PassengerTrip> matchingTrips = [];
   bool noMatchingTrips = false;
 
   @override
@@ -103,32 +141,44 @@ class _RechercherState extends State<Rechercher> {
     }
   }
 
-  Future<void> matchTrips() async {
-    setState(() {
-      matchingTrips.clear();
-      noMatchingTrips = true;
-    });
-    await firestore.collection('PassengerTrip').add({
-      'departureLocation': locationController.text,
-      'destination': destinationController.text,
-      'price': double.tryParse(priceController.text) ?? 0.0,// Ajouter une horodatage pour faciliter la recherche
-    });
+  Stream<List<DriverTrip>> getTripsStream() {
+    String departureLocation = locationController.text.trim().toLowerCase();
+    String destination = destinationController.text.trim().toLowerCase();
+    double price = double.tryParse(priceController.text) ?? double.infinity;
 
-    QuerySnapshot querySnapshot = await firestore.collection('PassengerTrip')
-        .where('departureLocation', isEqualTo: locationController.text.toLowerCase())
-        .where('destination', isEqualTo: destinationController.text.toLowerCase())
-        .where('price', isLessThanOrEqualTo: double.tryParse(priceController.text) ?? 0.0)
-        .get();
+    print("Searching for trips from $departureLocation to $destination with max price $price");
 
-    querySnapshot.docs.forEach((doc) {
-      PassengerTrip trip = PassengerTrip.fromFirestore(doc) ;
-      setState(() {
-        matchingTrips.add(trip);
-        noMatchingTrips = false;
-      });
-    });
+    return firestore
+        .collection('DriverTrip')
+        .where('departureLocation', isEqualTo: departureLocation)
+        .where('destination', isEqualTo: destination)
+        .where('price', isLessThanOrEqualTo: price)
+        .snapshots()
+        .map((querySnapshot) => querySnapshot.docs.map((doc) => DriverTrip.fromFirestore(doc)).toList());
   }
 
+  Future<void> matchTrips() async {
+    // Mettre à jour l'état pour indiquer qu'une recherche est en cours
+    setState(() {
+      noMatchingTrips = true;
+    });
+    User? user = _auth.currentUser;
+    if (user != null) {
+      // Récupérer les informations de l'utilisateur
+      DocumentSnapshot userDoc = await firestore.collection('users').doc(
+          user.uid).get();
+      String passengerName = userDoc['name'];
+
+      // Ajouter les informations du trajet passager à la base de données
+      await firestore.collection('PassengerTrip').add({
+        'departureLocation': locationController.text.trim().toLowerCase(),
+        'destination': destinationController.text.trim().toLowerCase(),
+        'price': double.tryParse(priceController.text) ?? 0.0,
+        'passengerName': passengerName,
+      });
+    }
+
+  }
 
 
   @override
@@ -138,6 +188,7 @@ class _RechercherState extends State<Rechercher> {
         title: Text("Rechercher un trajet"),
         backgroundColor: Colors.black,
       ),
+      backgroundColor: Colors.black,
       body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -193,79 +244,88 @@ class _RechercherState extends State<Rechercher> {
                 minimumSize: Size(double.infinity, 50),
               ),
             ),
-            if (matchingTrips.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  children: [
-                    for (var trip in matchingTrips)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          ListTile(
-                            title: Text(
-                              'Départ: ${trip.departureLocation}, Destination: ${trip.destination}, Prix: ${trip.price}',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            subtitle: Text(
-                              'Heure de départ: À l\'instant',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            StreamBuilder<List<DriverTrip>>(
+              stream: getTripsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text('Aucun trajet correspondant trouvé.', style: TextStyle(color: Colors.red)),
+                  );
+                } else {
+                  List<DriverTrip> trips = snapshot.data!;
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      children: [
+                        for (var trip in trips)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    // Logique pour accepter le trajet
-                                  },
-                                  child: Text('Accepter'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.teal,
-                                    foregroundColor: Colors.white,
-                                    textStyle: TextStyle(fontSize: 16.0),
-                                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
+                              ListTile(
+                                title: Text(
+                                  'Départ: ${trip.departureLocation}, Destination: ${trip.destination}, Prix: ${trip.price}, Nom du conducteur: ${trip.driverName}',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                subtitle: Text(
+                                  'Heure de départ: À l\'instant',
+                                  style: TextStyle(color: Colors.white),
                                 ),
                               ),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    // Logique pour refuser le trajet
-                                  },
-                                  child: Text('Refuser'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey,
-                                    foregroundColor: Colors.white,
-                                    textStyle: TextStyle(fontSize: 16.0),
-                                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => TrajetPassager(source: '', destination: '',)),
+                                        );
+                                      },
+                                      child: Text('Accepter'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.teal,
+                                        foregroundColor: Colors.white,
+                                        textStyle: TextStyle(fontSize: 16.0),
+                                        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () {
+
+                                      },
+                                      child: Text('Refuser'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.grey,
+                                        foregroundColor: Colors.white,
+                                        textStyle: TextStyle(fontSize: 16.0),
+                                        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
+                              Divider(color: Colors.white),
                             ],
                           ),
-                          Divider(color: Colors.white),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            if (noMatchingTrips)
-              Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'Aucun trajet correspondant trouvé.',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
+                      ],
+                    ),
+                  );
+                }
+              },
+            ),
           ],
         ),
       ),
